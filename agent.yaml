@@ -13,6 +13,11 @@ spec:
         # 需要 root 權限讀取 node 上的 container log
         serviceAccountName: elastic-agent
         automountServiceAccountToken: true
+        tolerations:
+          - key: dedicated
+            operator: Equal
+            value: core
+            effect: NoSchedule
         securityContext:
           runAsUser: 0
         containers:
