@@ -45,7 +45,16 @@ echo ""
 echo "  Next: ArgoCD sync or manual deploy"
 echo ""
 echo "  ArgoCD:"
-echo "    argocd app sync elk"
+cat <<'EOF'
+    argocd app create elk \
+      --repo https://github.com/LinX9581/gke-elk \
+      --path . \
+      --dest-server https://kubernetes.default.svc \
+      --dest-namespace elk \
+      --upsert
+
+    argocd app sync elk
+EOF
 echo ""
 echo "  Manual (without ArgoCD):"
 echo "    kubectl apply -f elasticsearch.yaml"

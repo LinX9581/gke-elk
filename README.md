@@ -11,44 +11,27 @@
 | `kibana.yaml` | Kibana CRD（LoadBalancer 暴露） |
 | `agent.yaml` | Elastic Agent DaemonSet（收 container log） |
 | `del.sh` | 刪除 ELK（保留 PVC） |
+| `info.sh` | 查看 ELK 狀態 |
 
 ## 快速開始
 
 ```bash
-# 部署
+# 取得IP
 bash bootstrap.sh
 
-# 查看狀態
-kubectl get elasticsearch,kibana,agent -n elk
-
-# 取得密碼
-kubectl get secret elk-es-elastic-user -n elk -o jsonpath='{.data.elastic}' | base64 -d; echo
-
-# 取得 Kibana URL
-kubectl get svc elk-kb-http -n elk
-
-# 刪除
-bash del.sh
-```
-
-## ArgoCD 部署（選用）
-
-如果要透過 ArgoCD 管理，只需建立**一個 App** 指向此目錄：
-
-```bash
+# ArgoCD 佈署
 argocd app create elk \
-  --repo https://github.com/LinX9581/elk-gke \
-  --path elk \
+  --repo https://github.com/LinX9581/gke-elk \
+  --path . \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace elk \
   --upsert
 
 argocd app sync elk
+
+# 查看狀態
+bash info.sh
+
+# 刪除
+bash del.sh
 ```
-
-> **注意：** ECK Operator 需先手動安裝（`bootstrap.sh` Step 1），ArgoCD 只管 CRD manifest。
-
-## 登入
-
-- **帳號：** `elastic`
-- **密碼：** 由 ECK 自動產生，見上方取得密碼指令
