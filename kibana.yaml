@@ -1,0 +1,27 @@
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: elk
+  namespace: elk
+spec:
+  version: 8.17.0
+  count: 1
+  elasticsearchRef:
+    name: elk
+  podTemplate:
+    spec:
+      containers:
+        - name: kibana
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+  http:
+    service:
+      spec:
+        type: LoadBalancer
+        # 如需固定 IP，取消下行註解並填入 bootstrap.sh 輸出的 IP
+        # loadBalancerIP: "x.x.x.x"
