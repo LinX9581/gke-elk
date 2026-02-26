@@ -1,0 +1,82 @@
+{
+  "description": "Parse Traefik access log JSON from container log message",
+  "processors": [
+    {
+      "dissect": {
+        "field": "message",
+        "pattern": "%{_container_ts} %{_stream} %{_flag} %{_json_body}",
+        "if": "ctx.message != null && ctx.message.contains('stdout F {')",
+        "ignore_failure": true
+      }
+    },
+    {
+      "json": {
+        "field": "_json_body",
+        "target_field": "traefik",
+        "if": "ctx._json_body != null",
+        "ignore_failure": true
+      }
+    },
+    {
+      "rename": { "field": "traefik.DownstreamStatus",        "target_field": "traefik.status",      "ignore_failure": true }
+    },
+    {
+      "rename": { "field": "traefik.RequestMethod",           "target_field": "traefik.method",      "ignore_failure": true }
+    },
+    {
+      "rename": { "field": "traefik.RequestPath",             "target_field": "traefik.path",        "ignore_failure": true }
+    },
+    {
+      "rename": { "field": "traefik.RequestHost",             "target_field": "traefik.host",        "ignore_failure": true }
+    },
+    {
+      "rename": { "field": "traefik.RequestProtocol",         "target_field": "traefik.protocol",    "ignore_failure": true }
+    },
+    {
+      "rename": { "field": "traefik.DownstreamContentSize",   "target_field": "traefik.body_bytes",  "ignore_failure": true }
+    },
+    {
+      "rename": { "field": "traefik.OriginDuration",          "target_field": "traefik.duration_ns", "ignore_failure": true }
+    },
+    {
+      "rename": { "field": "traefik.request_Cf-Connecting-Ip","target_field": "traefik.client_ip",   "ignore_failure": true }
+    },
+    {
+      "rename": { "field": "traefik.request_User-Agent",      "target_field": "traefik.user_agent",  "ignore_failure": true }
+    },
+    {
+      "rename": { "field": "traefik.request_Referer",         "target_field": "traefik.referer",     "ignore_failure": true }
+    },
+    {
+      "rename": { "field": "traefik.StartLocal",              "target_field": "traefik.start_time",  "ignore_failure": true }
+    },
+    {
+      "script": {
+        "source": "if (ctx.traefik?.duration_ns != null) { ctx.traefik.duration_ms = ctx.traefik.duration_ns / 1000000.0; }",
+        "ignore_failure": true
+      }
+    },
+    {
+      "geoip": {
+        "field": "traefik.client_ip",
+        "target_field": "traefik.geoip",
+        "if": "ctx.traefik?.client_ip != null",
+        "ignore_failure": true
+      }
+    },
+    {
+      "user_agent": {
+        "field": "traefik.user_agent",
+        "target_field": "traefik.ua",
+        "if": "ctx.traefik?.user_agent != null",
+        "ignore_failure": true
+      }
+    },
+    {
+      "remove": {
+        "field": ["_container_ts", "_stream", "_flag", "_json_body", "traefik.level", "traefik.msg", "traefik.time"],
+        "ignore_failure": true
+      }
+    }
+  ]
+}

@@ -13,6 +13,13 @@ spec:
         node.store.allow_mmap: false
       podTemplate:
         spec:
+          nodeSelector:
+            workload: observability
+          tolerations:
+            - key: dedicated
+              operator: Equal
+              value: observability
+              effect: NoSchedule
           containers:
             - name: elasticsearch
               resources:

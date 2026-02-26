@@ -16,7 +16,7 @@ spec:
         tolerations:
           - key: dedicated
             operator: Equal
-            value: core
+            value: observability
             effect: NoSchedule
         securityContext:
           runAsUser: 0
@@ -46,6 +46,7 @@ spec:
   config:
     inputs:
       - name: traefik-logs
+        id: filestream-traefik
         type: filestream
         use_output: default
         data_stream:
@@ -58,6 +59,7 @@ spec:
             paths:
               - /var/log/containers/*_traefik_*.log
       - name: nodejs-logs
+        id: filestream-nodejs
         type: filestream
         use_output: default
         data_stream:
@@ -87,6 +89,9 @@ rules:
   - apiGroups: [""]
     resources: [nodes/stats]
     verbs: [get]
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, create, update]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
