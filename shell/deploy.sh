@@ -48,7 +48,7 @@ echo "  ArgoCD:"
 cat <<'EOF'
     argocd app create elk \
       --repo https://github.com/LinX9581/gke-elk \
-      --path . \
+      --path manifests \
       --dest-server https://kubernetes.default.svc \
       --dest-namespace elk \
       --upsert
