@@ -22,7 +22,9 @@ helm upgrade --install elastic-operator elastic/eck-operator \
 
 # -------- Step 2: Ensure namespace --------
 info "Step 2/3 — Create namespace"
-kubectl apply -f namespace.yaml
+kubectl create namespace "$NS" --dry-run=client -o yaml \
+  | kubectl apply -f -
+kubectl label namespace "$NS" workload=observability --overwrite
 
 # -------- Step 3: Reserve static IP --------
 info "Step 3/3 — Reserve static IP"
