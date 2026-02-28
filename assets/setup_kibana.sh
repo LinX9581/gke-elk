@@ -16,8 +16,8 @@ ES_NAME="${ES_NAME:-elk}"
 # 🔧 網站清單 — 新增網站只改這裡，然後重跑腳本
 # ============================================================
 SITES=(
-  "site-a.com"
-  "site-b.com"
+  "nodejs.linx.bar"
+  "nodejs-bn.linx.bar"
   # "site-c.com"   ← 新增站點取消註解或加新行
 )
 
@@ -59,7 +59,11 @@ create_saved_search() {
   local title="$2"
   local kql_query="$3"
 
-  local search_source="{\\\"index\\\":\\\"traefik-access-log\\\",\\\"query\\\":{\\\"query\\\":\\\"${kql_query}\\\",\\\"language\\\":\\\"kuery\\\"},\\\"filter\\\":[]}"
+  # 組 searchSourceJSON：先建好 inner JSON，再用 python 做 JSON-safe 逸出
+  local inner_json
+  inner_json=$(printf '{"index":"traefik-access-log","query":{"query":"%s","language":"kuery"},"filter":[]}' "$kql_query")
+  local escaped_inner
+  escaped_inner=$(echo -n "$inner_json" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read())[1:-1])')
 
   local payload
   payload=$(cat <<ENDJSON
@@ -70,7 +74,7 @@ create_saved_search() {
     "columns": ${COLUMNS_ARRAY},
     "sort": [["@timestamp", "desc"]],
     "kibanaSavedObjectMeta": {
-      "searchSourceJSON": "${search_source}"
+      "searchSourceJSON": "${escaped_inner}"
     }
   },
   "references": [
@@ -91,8 +95,8 @@ ENDJSON
     -H 'Content-Type: application/json' \
     -d "$payload" 2>/dev/null)
 
-  # 如果已存在就更新
-  if echo "$response" | grep -q "Saved object.*already exists"; then
+  # 如果已存在就更新（Kibana 8.x 回傳 conflict 或 already exists）
+  if echo "$response" | grep -qiE "conflict|already exists"; then
     response=$(curl -s -k -u "elastic:${ES_PASS}" \
       -X PUT "${KIBANA_URL}/api/saved_objects/search/${id}" \
       -H 'kbn-xsrf: true' \
@@ -142,7 +146,7 @@ for site in "${SITES[@]}"; do
   create_saved_search \
     "$site_id" \
     "${site} Access Log" \
-    "traefik.host: \\\"${site}\\\""
+    "traefik.host: ${site}"
 done
 
 echo ""
