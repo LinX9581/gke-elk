@@ -13,10 +13,12 @@ spec:
         # 需要 root 權限讀取 node 上的 container log
         serviceAccountName: elastic-agent
         automountServiceAccountToken: true
+        nodeSelector:
+          workload: system
         tolerations:
           - key: dedicated
             operator: Equal
-            value: observability
+            value: system
             effect: NoSchedule
         securityContext:
           runAsUser: 0
@@ -53,24 +55,12 @@ spec:
           namespace: default
         streams:
           - data_stream:
-              dataset: kubernetes.container_logs
+              dataset: traefik.access
               type: logs
             prospector.scanner.symlinks: true
             paths:
               - /var/log/containers/*_traefik_*.log
-      - name: nodejs-logs
-        id: filestream-nodejs
-        type: filestream
-        use_output: default
-        data_stream:
-          namespace: default
-        streams:
-          - data_stream:
-              dataset: kubernetes.container_logs
-              type: logs
-            prospector.scanner.symlinks: true
-            paths:
-              - /var/log/containers/*_nodejs-fn-template_*.log
+
 ---
 apiVersion: v1
 kind: ServiceAccount

@@ -42,14 +42,34 @@ for f in "${SCRIPT_DIR}"/pipeline-*.json; do
     || err "  ✗ Failed to deploy $pipeline_name"
 done
 
-# -------- 設定 default_pipeline --------
-info "Setting default_pipeline on logs-kubernetes.container_logs-default..."
+# -------- 設定 index template（rollover 後自動套用）--------
+info "Creating index template: logs-traefik-access..."
 kubectl exec -n "$NS" "${ES_NAME}-es-default-0" -- \
   curl -s -u "elastic:${ES_PASS}" \
-  -X PUT "${ES_URL}/logs-kubernetes.container_logs-default/_settings" \
+  -X PUT "${ES_URL}/_index_template/logs-traefik-access" \
+  -k -H 'Content-Type: application/json' \
+  -d '{
+    "index_patterns": ["logs-traefik.access-*"],
+    "template": {
+      "settings": {
+        "index.default_pipeline": "traefik-access-log"
+      }
+    },
+    "priority": 500,
+    "composed_of": ["logs-mappings", "logs-settings"]
+  }' | grep -q '"acknowledged":true' \
+  && info "  ✓ index template created" \
+  || info "  ⚠ Could not create index template"
+
+# 也套用到目前已存在的 index（template 只影響新建的）
+info "Applying pipeline to existing index..."
+kubectl exec -n "$NS" "${ES_NAME}-es-default-0" -- \
+  curl -s -u "elastic:${ES_PASS}" \
+  -X PUT "${ES_URL}/logs-traefik.access-default/_settings" \
   -k -H 'Content-Type: application/json' \
   -d '{"index.default_pipeline": "traefik-access-log"}' | grep -q '"acknowledged":true' \
-  && info "  ✓ default_pipeline set" \
-  || info "  ⚠ Could not set default_pipeline (index may not exist yet, will be set after first log arrives)"
+  && info "  ✓ existing index updated" \
+  || info "  ⚠ No existing index yet (will be created with template)"
 
 info "All pipelines deployed."
+
